@@ -9,7 +9,7 @@ function ClientDetails() {
     const [client, setClient] = useState(null);
 
     useEffect(() => {
-        axios.get(`http://localhost:3001/clients/${id}`)
+        axios.get(`${process.env.REACT_APP_API_URL}/clients/${id}`)
             .then(response => setClient(response.data))
             .catch(error => console.error('Error fetching client details:', error));
     }, [id]);

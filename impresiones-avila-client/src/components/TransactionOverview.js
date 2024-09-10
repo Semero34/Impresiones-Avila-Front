@@ -9,25 +9,31 @@ function TransactionOverview() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        axios.get('http://localhost:3001/transactions')
-            .then(response => {
+        const fetchTransactions = async () => {
+            try {
+                const response = await axios.get(`${process.env.REACT_APP_API_URL}/transactions`);
                 console.log('Transacciones obtenidas:', response.data);
                 setTransactions(response.data);
-            })
-            .catch(error => console.error('Error fetching transactions:', error));
+            } catch (error) {
+                console.error('Error fetching transactions:', error);
+            }
+        };
+
+        fetchTransactions();
     }, []);
 
-    const handleGenerateReport = () => {
-        axios.get('http://localhost:3001/generate-general-report', { responseType: 'blob' })
-            .then(response => {
-                const url = window.URL.createObjectURL(new Blob([response.data]));
-                const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute('download', 'reporte_general.pdf');
-                document.body.appendChild(link);
-                link.click();
-            })
-            .catch(error => console.error('Error generating report:', error));
+    const handleGenerateReport = async () => {
+        try {
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/generate-general-report`, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'reporte_general.pdf');
+            document.body.appendChild(link);
+            link.click();
+        } catch (error) {
+            console.error('Error generating report:', error);
+        }
     };
 
     return (

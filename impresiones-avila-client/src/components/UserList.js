@@ -26,7 +26,7 @@ const UserList = () => {
     const fetchUsers = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:3001/users', {
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/users`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setUsers(response.data);
@@ -47,7 +47,7 @@ const UserList = () => {
     const handleDelete = async () => {
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:3001/users/${userIdToDelete}`, {
+            await axios.delete(`${process.env.REACT_APP_API_URL}/users/${userIdToDelete}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setUsers(users.filter(user => user.user_id !== userIdToDelete));

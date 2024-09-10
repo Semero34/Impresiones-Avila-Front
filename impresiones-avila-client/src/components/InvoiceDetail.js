@@ -13,7 +13,7 @@ const InvoiceDetail = () => {
         const fetchInvoice = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get(`http://localhost:3001/invoice/${id}`, {
+                const response = await axios.get(`${process.env.REACT_APP_API_URL}/invoice/${id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setInvoice(response.data.invoice);

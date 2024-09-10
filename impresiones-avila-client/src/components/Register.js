@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Container, Typography, TextField, Button, Box, Paper, Avatar, Link, Grid, Alert } from '@mui/material';
-import { LockOutlined as LockOutlinedIcon } from '@mui/icons-material';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 
 function Register() {
@@ -16,7 +16,7 @@ function Register() {
     const [identificationNumber, setIdentificationNumber] = useState('');
     const [message, setMessage] = useState('');
     const [emailError, setEmailError] = useState('');
-const [idError, setIdError] = useState('');
+    const [idError, setIdError] = useState('');
 
     const navigate = useNavigate();
 
@@ -49,11 +49,10 @@ const [idError, setIdError] = useState('');
         e.preventDefault();
 
         const passwordError = validatePassword(password);
-    if (passwordError) {
-        setMessage(passwordError);
-        return;
-    }
-
+        if (passwordError) {
+            setMessage(passwordError);
+            return;
+        }
 
         if (!username || !firstName || !lastName || !email || !password || !confirmPassword || !birthDate || !identificationType || !identificationNumber) {
             setMessage('Todos los campos son obligatorios');
@@ -73,12 +72,14 @@ const [idError, setIdError] = useState('');
         } else {
             setIdError('');
         }
+
         if (password !== confirmPassword) {
             setMessage('Las contraseñas no coinciden');
             return;
         }
+
         try {
-            const response = await axios.post('http://localhost:3001/register', {
+            const response = await axios.post(`${process.env.REACT_APP_API_URL}/register`, {
                 username,
                 firstName,
                 lastName,
@@ -100,15 +101,14 @@ const [idError, setIdError] = useState('');
     };
 
     return (
-        <Grid container component="main" className="min-h-screen">
-            <Grid item xs={false} sm={4} md={7} className="hidden sm:block">
+        <Grid container component="main" sx={{ minHeight: '100vh' }}>
+            <Grid item xs={false} sm={4} md={7} sx={{ display: { xs: 'none', sm: 'block' } }}>
                 <Box
-                    className="h-full"
                     sx={{
+                        height: '100%',
                         backgroundImage: `url(/images/register.jpg)`,
                         backgroundRepeat: 'no-repeat',
-                        backgroundColor: (t) =>
-                            t.palette.mode === 'light' ? t.palette.grey[50] : t.palette.grey[900],
+                        backgroundColor: (theme) => theme.palette.mode === 'light' ? theme.palette.grey[50] : theme.palette.grey[900],
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         position: 'relative',
@@ -161,18 +161,7 @@ const [idError, setIdError] = useState('');
                             label="Nombre de Usuario"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            InputLabelProps={{
-                                shrink: true,
-                                sx: {
-                                    top: '8px',
-                                    left: '12px',
-                                },
-                            }}
-                            InputProps={{
-                                sx: {
-                                    borderRadius: '20px',
-                                },
-                            }}
+                            sx={{ mb: 2 }}
                         />
                         <TextField
                             variant="outlined"
@@ -182,18 +171,7 @@ const [idError, setIdError] = useState('');
                             label="Nombre"
                             value={firstName}
                             onChange={(e) => setFirstName(e.target.value)}
-                            InputLabelProps={{
-                                shrink: true,
-                                sx: {
-                                    top: '8px',
-                                    left: '12px',
-                                },
-                            }}
-                            InputProps={{
-                                sx: {
-                                    borderRadius: '20px',
-                                },
-                            }}
+                            sx={{ mb: 2 }}
                         />
                         <TextField
                             variant="outlined"
@@ -203,18 +181,7 @@ const [idError, setIdError] = useState('');
                             label="Apellido"
                             value={lastName}
                             onChange={(e) => setLastName(e.target.value)}
-                            InputLabelProps={{
-                                shrink: true,
-                                sx: {
-                                    top: '8px',
-                                    left: '12px',
-                                },
-                            }}
-                            InputProps={{
-                                sx: {
-                                    borderRadius: '20px',
-                                },
-                            }}
+                            sx={{ mb: 2 }}
                         />
                         <TextField
                             variant="outlined"
@@ -225,18 +192,9 @@ const [idError, setIdError] = useState('');
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            InputLabelProps={{
-                                shrink: true,
-                                sx: {
-                                    top: '8px',
-                                    left: '12px',
-                                },
-                            }}
-                            InputProps={{
-                                sx: {
-                                    borderRadius: '20px',
-                                },
-                            }}
+                            error={!!emailError}
+                            helperText={emailError}
+                            sx={{ mb: 2 }}
                         />
                         <TextField
                             variant="outlined"
@@ -248,12 +206,7 @@ const [idError, setIdError] = useState('');
                             InputLabelProps={{ shrink: true }}
                             value={birthDate}
                             onChange={(e) => setBirthDate(e.target.value)}
-                            sx={{
-                                borderRadius: '20px',
-                                '& .MuiOutlinedInput-input': {
-                                    padding: '10px 14px',
-                                },
-                            }}
+                            sx={{ mb: 2 }}
                         />
                         <TextField
                             variant="outlined"
@@ -263,18 +216,7 @@ const [idError, setIdError] = useState('');
                             label="Tipo de Identificación"
                             value={identificationType}
                             onChange={(e) => setIdentificationType(e.target.value)}
-                            InputLabelProps={{
-                                shrink: true,
-                                sx: {
-                                    top: '8px',
-                                    left: '12px',
-                                },
-                            }}
-                            InputProps={{
-                                sx: {
-                                    borderRadius: '20px',
-                                },
-                            }}
+                            sx={{ mb: 2 }}
                         />
                         <TextField
                             variant="outlined"
@@ -284,18 +226,9 @@ const [idError, setIdError] = useState('');
                             label="Número de Identificación"
                             value={identificationNumber}
                             onChange={(e) => setIdentificationNumber(e.target.value)}
-                            InputLabelProps={{
-                                shrink: true,
-                                sx: {
-                                    top: '8px',
-                                    left: '12px',
-                                },
-                            }}
-                            InputProps={{
-                                sx: {
-                                    borderRadius: '20px',
-                                },
-                            }}
+                            error={!!idError}
+                            helperText={idError}
+                            sx={{ mb: 2 }}
                         />
                         <TextField
                             variant="outlined"
@@ -306,18 +239,7 @@ const [idError, setIdError] = useState('');
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            InputLabelProps={{
-                                shrink: true,
-                                sx: {
-                                    top: '8px',
-                                    left: '12px',
-                                },
-                            }}
-                            InputProps={{
-                                sx: {
-                                    borderRadius: '20px',
-                                },
-                            }}
+                            sx={{ mb: 2 }}
                         />
                         <TextField
                             variant="outlined"
@@ -328,25 +250,20 @@ const [idError, setIdError] = useState('');
                             type="password"
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
-                            InputLabelProps={{
-                                shrink: true,
-                                sx: {
-                                    top: '8px',
-                                    left: '12px',
-                                },
-                            }}
-                            InputProps={{
-                                sx: {
-                                    borderRadius: '20px',
-                                },
-                            }}
+                            sx={{ mb: 2 }}
                         />
-                        <Button type="submit" fullWidth variant="contained" color="primary" sx={{ mt: 3, mb: 2, borderRadius: '20px', bgcolor: 'purple', color: 'white' }}>
+                        <Button
+                            type="submit"
+                            fullWidth
+                            variant="contained"
+                            color="primary"
+                            sx={{ mt: 3, mb: 2, borderRadius: '20px' }}
+                        >
                             Registrarse
                         </Button>
-                        <Grid container justifyContent="space-between">
+                        <Grid container justifyContent="flex-end">
                             <Grid item>
-                                <Link component={RouterLink} to="/login" variant="body2" style={{ color: 'purple' }}>
+                                <Link component={RouterLink} to="/login" variant="body2" color="primary">
                                     {"¿Ya tienes una cuenta? Inicia sesión aquí"}
                                 </Link>
                             </Grid>

@@ -19,7 +19,7 @@ function ProductList() {
         const fetchProducts = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get('http://localhost:3001/products', {
+                const response = await axios.get('${process.env.REACT_APP_API_URL}/products', {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -45,7 +45,7 @@ function ProductList() {
     const handleDelete = async () => {
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:3001/products/${productToDelete}`, {
+            await axios.delete(`${process.env.REACT_APP_API_URL}/products/${productToDelete}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -65,7 +65,7 @@ function ProductList() {
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
     return (
-        <Container className="mt-8">
+        <Container  className="mt-8" style={{ backgroundColor: '#F3E5F5', borderRadius: '15px', padding: '20px' }}>
             <div className="text-center mb-6">
                 <h4 className="text-2xl font-bold">Productos</h4>
             </div>
@@ -91,8 +91,8 @@ function ProductList() {
                     <AddIcon className="mr-2" /> Añadir Producto
                 </Button>
             </div>
-            <Table striped bordered hover responsive className="shadow-lg">
-    <thead>
+            <Table striped bordered hover responsive className="shadow-lg" style={{ borderRadius: '15px', overflow: 'hidden' }}>
+    <thead style={{ backgroundColor: '#7B1FA2', color: 'white' }}>
         <tr>
             <th>ID</th>
             <th>Nombre</th>

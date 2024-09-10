@@ -18,11 +18,19 @@ function CartButton() {
             updateCartItemCount();
         };
 
+        const handleCartEmptied = () => {
+            setCartItemCount(0);
+        };
+
         window.addEventListener('cart-updated', handleCartUpdated);
+        window.addEventListener('cart-emptied', handleCartEmptied);
+        window.addEventListener('order-completed', handleCartEmptied);
 
         // Limpieza del evento cuando el componente se desmonta
         return () => {
             window.removeEventListener('cart-updated', handleCartUpdated);
+            window.removeEventListener('cart-emptied', handleCartEmptied);
+            window.removeEventListener('order-completed', handleCartEmptied);
         };
     }, []);
 
@@ -33,7 +41,7 @@ function CartButton() {
             color="inherit"
         >
             <Badge badgeContent={cartItemCount} color="secondary">
-                <ShoppingCart style={{ color: 'black' }} />
+                <ShoppingCart style={{ color: 'white' }} />
             </Badge>
         </IconButton>
     );

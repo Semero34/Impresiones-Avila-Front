@@ -52,7 +52,7 @@ function AddProduct() {
 
         try {
             const token = localStorage.getItem('token');
-            await axios.post('http://localhost:3001/products', formData, {
+            await axios.post('${process.env.REACT_APP_API_URL}/products', formData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data'

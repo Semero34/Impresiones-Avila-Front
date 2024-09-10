@@ -10,7 +10,7 @@ const OrderDetails = () => {
 
     useEffect(() => {
         const token = localStorage.getItem('token');
-        axios.get(`http://localhost:3001/admin/orders/${orderId}`, {
+        axios.get(`${process.env.REACT_APP_API_URL}/admin/orders/${orderId}`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }

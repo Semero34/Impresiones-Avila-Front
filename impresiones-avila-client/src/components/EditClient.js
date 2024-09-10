@@ -20,7 +20,7 @@ const EditClient = () => {
         const fetchClient = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get(`http://localhost:3001/clients/${id}`, {
+                const response = await axios.get(`${process.env.REACT_APP_API_URL}/clients/${id}`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -49,7 +49,7 @@ const EditClient = () => {
         }
         try {
             const token = localStorage.getItem('token');
-            await axios.put(`http://localhost:3001/clients/${id}`, {
+            await axios.put(`${process.env.REACT_APP_API_URL}/clients/${id}`, {
                 name,
                 address,
                 contact_info: contactInfo,

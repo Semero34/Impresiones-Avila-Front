@@ -16,7 +16,7 @@ function EditUser() {
         const fetchUser = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get(`http://localhost:3001/users/${id}`, {
+                const response = await axios.get(`${process.env.REACT_APP_API_URL}/users/${id}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const user = response.data;
@@ -42,7 +42,7 @@ function EditUser() {
 
         try {
             const token = localStorage.getItem('token');
-            await axios.put(`http://localhost:3001/users/${id}`, { username, email, role }, {
+            await axios.put(`${process.env.REACT_APP_API_URL}/users/${id}`, { username, email, role }, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             setMessage('User updated successfully');

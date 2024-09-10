@@ -20,6 +20,7 @@ import {
     Checkbox,
     ListItemText,
     Grid,
+    TablePagination,
 } from '@mui/material';
 import {
     Chart as ChartJS,
@@ -33,7 +34,7 @@ import {
     Legend,
     PointElement
 } from 'chart.js';
-import { Bar, Line, Pie } from 'react-chartjs-2';
+import { Bar, Pie } from 'react-chartjs-2';
 import 'tailwindcss/tailwind.css';
 
 ChartJS.register(
@@ -55,12 +56,14 @@ function InventoryReport() {
     const [categoryFilter, setCategoryFilter] = useState('');
     const [priceRange, setPriceRange] = useState([0, 10000]);
     const [availableFields] = useState(['product_id', 'name', 'stock', 'price', 'category']);
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
 
     useEffect(() => {
         const fetchProducts = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get('http://localhost:3001/products', {
+                const response = await axios.get('${process.env.REACT_APP_API_URL}/products', {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -74,7 +77,7 @@ function InventoryReport() {
         fetchProducts();
     }, []);
 
-    const handleDownload = async () => {
+    const handleDownload = async (format) => {
         try {
             if (fields.length === 0) {
                 alert('Por favor, selecciona al menos un campo.');
@@ -89,7 +92,7 @@ function InventoryReport() {
                 price_min: priceRange[0],
                 price_max: priceRange[1]
             }).toString();
-            const response = await axios.get(`http://localhost:3001/generate-inventory-report?${queryString}`, {
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/generate-inventory-report?${queryString}&format=${format}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 },
@@ -98,7 +101,7 @@ function InventoryReport() {
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', 'inventory_report.pdf');
+            link.setAttribute('download', `inventory_report.${format}`);
             document.body.appendChild(link);
             link.click();
         } catch (error) {
@@ -121,6 +124,15 @@ function InventoryReport() {
     const handlePriceRangeChange = (event) => {
         const { value, name } = event.target;
         setPriceRange(prev => name === 'min' ? [value, prev[1]] : [prev[0], value]);
+    };
+
+    const handleChangePage = (event, newPage) => {
+        setPage(newPage);
+    };
+
+    const handleChangeRowsPerPage = (event) => {
+        setRowsPerPage(+event.target.value);
+        setPage(0);
     };
 
     const getFilteredProducts = () => {
@@ -257,14 +269,38 @@ function InventoryReport() {
                         />
                     </Box>
                 </Box>
-                <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handleDownload}
-                    style={{ marginBottom: '20px' }}
-                >
-                    Generar PDF
-                </Button>
+                <Grid container spacing={2}>
+                    <Grid item>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={() => handleDownload('pdf')}
+                            style={{ marginBottom: '20px' }}
+                        >
+                            Generar PDF
+                        </Button>
+                    </Grid>
+                    <Grid item>
+                        <Button
+                            variant="contained"
+                            color="secondary"
+                            onClick={() => handleDownload('csv')}
+                            style={{ marginBottom: '20px' }}
+                        >
+                            Generar CSV
+                        </Button>
+                    </Grid>
+                    <Grid item>
+                        <Button
+                            variant="contained"
+                            color="success"
+                            onClick={() => handleDownload('xlsx')}
+                            style={{ marginBottom: '20px' }}
+                        >
+                            Generar Excel
+                        </Button>
+                    </Grid>
+                </Grid>
                 <TableContainer component={Paper}>
                     <Table>
                         <TableHead>
@@ -276,16 +312,26 @@ function InventoryReport() {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {getFilteredProducts().map((product) => (
-                                <TableRow key={product.product_id}>
-                                    {fields.includes('product_id') && <TableCell>{product.product_id}</TableCell>}
-                                    {fields.includes('name') && <TableCell>{product.name}</TableCell>}
-                                    {fields.includes('stock') && <TableCell>{product.stock}</TableCell>}
-                                    {fields.includes('price') && <TableCell>{product.price}</TableCell>}
-                                </TableRow>
-                            ))}
+                            {getFilteredProducts()
+                                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                                .map((product) => (
+                                    <TableRow key={product.product_id}>
+                                        {fields.includes('product_id') && <TableCell>{product.product_id}</TableCell>}
+                                        {fields.includes('name') && <TableCell>{product.name}</TableCell>}
+                                        {fields.includes('stock') && <TableCell>{product.stock}</TableCell>}
+                                        {fields.includes('price') && <TableCell>{product.price}</TableCell>}
+                                    </TableRow>
+                                ))}
                         </TableBody>
                     </Table>
+                    <TablePagination
+                        component="div"
+                        count={getFilteredProducts().length}
+                        page={page}
+                        onPageChange={handleChangePage}
+                        rowsPerPage={rowsPerPage}
+                        onRowsPerPageChange={handleChangeRowsPerPage}
+                    />
                 </TableContainer>
                 <Box mt={5}>
                     <Typography variant="h5" component="h2" gutterBottom>

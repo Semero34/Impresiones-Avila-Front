@@ -13,7 +13,7 @@ const SalesList = () => {
     const fetchSales = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:3001/sales', {
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/sales`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setSales(response.data);
@@ -23,10 +23,10 @@ const SalesList = () => {
     };
 
     return (
-        <Container>
+        <Container className="mt-8" style={{ backgroundColor: '#F3E5F5', borderRadius: '15px', padding: '20px' }}>
             <h2 className="my-4">Lista de Ventas</h2>
-            <Table striped bordered hover>
-                <thead>
+            <Table striped bordered hover responsive className="shadow-lg" style={{ borderRadius: '15px', overflow: 'hidden' }}>
+                <thead style={{ backgroundColor: '#7B1FA2', color: 'white' }}>
                     <tr>
                         <th>ID</th>
                         <th>Fecha</th>
@@ -35,16 +35,24 @@ const SalesList = () => {
                     </tr>
                 </thead>
                 <tbody>
-                    {sales.map(sale => (
-                        <tr key={sale.sale_id}>
-                            <td>{sale.sale_id}</td>
-                            <td>{sale.sale_date}</td>
-                            <td>{sale.total_amount}</td>
-                            <td>
-                                <Button variant="info" as={Link} to={`/sales/${sale.sale_id}`}>Detalles</Button>
-                            </td>
+                    {sales.length === 0 ? (
+                        <tr>
+                            <td colSpan="4" className="text-center">No hay ventas registradas.</td>
                         </tr>
-                    ))}
+                    ) : (
+                        sales.map(sale => (
+                            <tr key={sale.sale_id}>
+                                <td>{sale.sale_id}</td>
+                                <td>{sale.sale_date}</td>
+                                <td>{sale.total_amount}</td>
+                                <td>
+                                    <Button variant="info" as={Link} to={`/sales/${sale.sale_id}`}>
+                                        Detalles
+                                    </Button>
+                                </td>
+                            </tr>
+                        ))
+                    )}
                 </tbody>
             </Table>
         </Container>

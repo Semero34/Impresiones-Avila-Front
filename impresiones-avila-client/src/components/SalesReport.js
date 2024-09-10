@@ -41,7 +41,7 @@ ChartJS.register(
     Legend
 );
 
-function UserSales() {
+function SalesReport() {
     const [sales, setSales] = useState([]);
     const [fields, setFields] = useState(['invoice_id', 'description', 'quantity', 'unit_price']);
     const [descriptionFilter, setDescriptionFilter] = useState('');
@@ -52,7 +52,7 @@ function UserSales() {
         const fetchSales = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get('http://localhost:3001/sales', {
+                const response = await axios.get(`${process.env.REACT_APP_API_URL}/sales`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -80,7 +80,7 @@ function UserSales() {
                 start_date: dateRange.start,
                 end_date: dateRange.end
             }).toString();
-            const response = await axios.get(`http://localhost:3001/generate-ventas-report?${queryString}`, {
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/generate-sales-report?${queryString}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 },
@@ -245,4 +245,4 @@ function UserSales() {
     );
 }
 
-export default UserSales;
+export default SalesReport;

@@ -15,7 +15,7 @@ function AddTransaction() {
     const handleAddTransaction = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://localhost:3001/transactions', { client_id: clientId, order_date, item_description, quantity, unit_price });
+            await axios.post('${process.env.REACT_APP_API_URL}/transactions', { client_id: clientId, order_date, item_description, quantity, unit_price });
             setMessage('Transaction added successfully');
             setOrderDate('');
             setItemDescription('');

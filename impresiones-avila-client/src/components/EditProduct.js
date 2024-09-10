@@ -21,7 +21,7 @@ function EditProduct() {
         const fetchProduct = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get(`http://localhost:3001/products/${id}`, {
+                const response = await axios.get(`${process.env.REACT_APP_API_URL}/products/${id}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const product = response.data;
@@ -73,7 +73,7 @@ function EditProduct() {
     
         try {
             const token = localStorage.getItem('token');
-            await axios.put(`http://localhost:3001/products/${id}`, formData, {
+            await axios.put(`${process.env.REACT_APP_API_URL}/products/${id}`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     'Authorization': `Bearer ${token}`

@@ -16,7 +16,7 @@ function EditSupplier() {
         const fetchSupplier = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get(`http://localhost:3001/suppliers/${id}`, {
+                const response = await axios.get(`${process.env.REACT_APP_API_URL}/suppliers/${id}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const supplier = response.data;
@@ -36,7 +36,7 @@ function EditSupplier() {
         e.preventDefault();
         try {
             const token = localStorage.getItem('token');
-            await axios.put(`http://localhost:3001/suppliers/${id}`, { name, contact, address, payment_terms: paymentTerms }, {
+            await axios.put(`${process.env.REACT_APP_API_URL}/suppliers/${id}`, { name, contact, address, payment_terms: paymentTerms }, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             setMessage('Supplier updated successfully');

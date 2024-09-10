@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useParams } from 'react-router-dom'; // Eliminar `useNavigate` si no se usa
+import { useParams } from 'react-router-dom';
 import { Container, Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button } from '@mui/material';
 
 function TransactionList() {
@@ -11,7 +11,7 @@ function TransactionList() {
         const fetchTransactions = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get(`http://localhost:3001/transactions/${clientId}`, {
+                const response = await axios.get(`${process.env.REACT_APP_API_URL}/transactions/${clientId}`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -29,7 +29,7 @@ function TransactionList() {
     const handleGenerateReport = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`http://localhost:3001/generate-client-report/${clientId}`, {
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/generate-client-report/${clientId}`, {
                 responseType: 'blob',
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -47,7 +47,7 @@ function TransactionList() {
     };
 
     return (
-        <Container maxWidth="lg">
+        <Container className="mt-8" style={{ backgroundColor: '#F3E5F5', borderRadius: '15px', padding: '20px' }}>
             <Box mt={5}>
                 <Typography variant="h4" component="h1" gutterBottom>
                     Transacciones del Cliente

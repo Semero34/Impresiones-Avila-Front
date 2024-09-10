@@ -20,7 +20,7 @@ function AdminInvoices() {
         const fetchInvoices = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get('http://localhost:3001/admin/invoices', {
+                const response = await axios.get('${process.env.REACT_APP_API_URL}/admin/invoices', {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -39,7 +39,7 @@ function AdminInvoices() {
     const updateInvoiceStatus = async (id, status) => {
         try {
             const token = localStorage.getItem('token');
-            await axios.put(`http://localhost:3001/admin/invoices/${id}`, { status }, {
+            await axios.put(`${process.env.REACT_APP_API_URL}/admin/invoices/${id}`, { status }, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -53,7 +53,7 @@ function AdminInvoices() {
     const approveOrderAndCreateInvoice = async (orderId) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.put(`http://localhost:3001/admin/orders/${orderId}/approve`, {}, {
+            const response = await axios.put(`${process.env.REACT_APP_API_URL}/admin/orders/${orderId}/approve`, {}, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }

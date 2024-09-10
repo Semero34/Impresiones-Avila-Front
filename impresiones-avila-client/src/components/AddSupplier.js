@@ -13,7 +13,7 @@ function AddSupplier() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://localhost:3001/suppliers', 
+            await axios.post('${process.env.REACT_APP_API_URL}/suppliers', 
                 { name, contact, address, payment_terms: paymentTerms }, 
                 {
                     headers: {

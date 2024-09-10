@@ -10,7 +10,7 @@ function Expenses() {
         const fetchExpenses = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get('http://localhost:3001/expenses', {
+                const response = await axios.get('${process.env.REACT_APP_API_URL}/expenses', {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -32,7 +32,7 @@ function Expenses() {
     const handleAddExpense = async () => {
         try {
             const token = localStorage.getItem('token');
-            await axios.post('http://localhost:3001/expenses', newExpense, {
+            await axios.post('${process.env.REACT_APP_API_URL}/expenses', newExpense, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }

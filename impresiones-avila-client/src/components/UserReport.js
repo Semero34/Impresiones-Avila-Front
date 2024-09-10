@@ -4,6 +4,7 @@ import {
     Container,
     Typography,
     Box,
+    Grid,
     Table,
     TableBody,
     TableCell,
@@ -19,83 +20,42 @@ import {
     MenuItem,
     Checkbox,
     ListItemText,
+    CircularProgress,
 } from '@mui/material';
-import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    Title,
-    Tooltip,
-    Legend
-} from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import 'tailwindcss/tailwind.css';
 
-ChartJS.register(
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    Title,
-    Tooltip,
-    Legend
-);
-
 function UserReport() {
     const [users, setUsers] = useState([]);
-    const [fields, setFields] = useState(['user_id', 'username', 'email', 'created_at', 'role']);
-    const [usernameFilter, setUsernameFilter] = useState('');
-    const [roleFilter, setRoleFilter] = useState('');
-    const [dateRange, setDateRange] = useState({ start: '', end: '' });
-    const [availableFields] = useState(['user_id', 'username', 'email', 'created_at', 'role']);
-
+    const [loading, setLoading] = useState(false);
+    const [fields, setFields] = useState(['user_id', 'username', 'email', 'created_at', 'role', 'status']);
+    const [filters, setFilters] = useState({
+        username: '',
+        role: '',
+        status: '',
+        startDate: '',
+        endDate: '',
+    });
+    const [availableFields] = useState(['user_id', 'username', 'email', 'created_at', 'role', 'status', 'last_login']);
+    
     useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                const token = localStorage.getItem('token');
-                const response = await axios.get('http://localhost:3001/users', {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
-                setUsers(response.data);
-            } catch (error) {
-                console.error('Error fetching users:', error);
-            }
-        };
-
         fetchUsers();
     }, []);
 
-    const handleDownload = async () => {
+    const fetchUsers = async () => {
+        setLoading(true);
         try {
-            if (fields.length === 0) {
-                alert('Por favor, selecciona al menos un campo.');
-                return;
-            }
-
             const token = localStorage.getItem('token');
-            const queryString = new URLSearchParams({
-                fields: fields.join(','),
-                username: usernameFilter,
-                role: roleFilter,
-                start_date: dateRange.start,
-                end_date: dateRange.end
-            }).toString();
-            const response = await axios.get(`http://localhost:3001/generate-user-report?${queryString}`, {
+            const response = await axios.get('${process.env.REACT_APP_API_URL}/users', {
                 headers: {
-                    Authorization: `Bearer ${token}`
+                    Authorization: `Bearer ${token}`,
                 },
-                responseType: 'blob',
             });
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', 'user_report.pdf');
-            document.body.appendChild(link);
-            link.click();
+            setUsers(response.data);
         } catch (error) {
-            console.error('Error downloading the report:', error);
+            console.error('Error fetching users:', error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -103,25 +63,44 @@ function UserReport() {
         setFields(event.target.value);
     };
 
-    const handleUsernameFilterChange = (event) => {
-        setUsernameFilter(event.target.value);
+    const handleFilterChange = (field) => (event) => {
+        setFilters({ ...filters, [field]: event.target.value });
     };
 
-    const handleRoleFilterChange = (event) => {
-        setRoleFilter(event.target.value);
-    };
+    const handleDownload = async (format) => {
+        try {
+            const token = localStorage.getItem('token');
+            const queryString = new URLSearchParams({
+                fields: fields.join(','),
+                ...filters,
+            }).toString();
 
-    const handleDateRangeChange = (field) => (event) => {
-        setDateRange({ ...dateRange, [field]: event.target.value });
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/generate-user-report?${queryString}&format=${format}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                responseType: 'blob',
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `user_report.${format}`);
+            document.body.appendChild(link);
+            link.click();
+        } catch (error) {
+            console.error('Error downloading report:', error);
+        }
     };
 
     const getFilteredUsers = () => {
-        return users.filter(user => {
-            const usernameMatch = user.username.toLowerCase().includes(usernameFilter.toLowerCase());
-            const roleMatch = roleFilter === '' || user.role === roleFilter;
-            const startDateMatch = dateRange.start === '' || new Date(user.created_at) >= new Date(dateRange.start);
-            const endDateMatch = dateRange.end === '' || new Date(user.created_at) <= new Date(dateRange.end);
-            return usernameMatch && roleMatch && startDateMatch && endDateMatch;
+        return users.filter((user) => {
+            const matchesUsername = user.username.toLowerCase().includes(filters.username.toLowerCase());
+            const matchesRole = filters.role === '' || user.role === filters.role;
+            const matchesStatus = filters.status === '' || user.status === filters.status;
+            const matchesStartDate = filters.startDate === '' || new Date(user.created_at) >= new Date(filters.startDate);
+            const matchesEndDate = filters.endDate === '' || new Date(user.created_at) <= new Date(filters.endDate);
+            return matchesUsername && matchesRole && matchesStatus && matchesStartDate && matchesEndDate;
         });
     };
 
@@ -135,7 +114,7 @@ function UserReport() {
             labels: Object.keys(roles),
             datasets: [
                 {
-                    label: 'User Roles',
+                    label: 'Usuarios por Rol',
                     data: Object.values(roles),
                     backgroundColor: 'rgba(75, 192, 192, 0.6)',
                     borderColor: 'rgba(75, 192, 192, 1)',
@@ -151,115 +130,165 @@ function UserReport() {
                 <Typography variant="h4" component="h1" gutterBottom>
                     Reporte de Usuarios
                 </Typography>
-                <Box mb={3}>
-                    <FormControl fullWidth margin="normal">
-                        <InputLabel>Seleccionar Campos</InputLabel>
-                        <Select
-                            multiple
-                            value={fields}
-                            onChange={handleFieldChange}
-                            renderValue={(selected) => selected.map(field => field.replace('_', ' ').toUpperCase()).join(', ')}
-                            MenuProps={{
-                                PaperProps: {
-                                    style: {
-                                        maxHeight: 200,
-                                    },
-                                },
-                            }}
-                        >
-                            {availableFields.map((field) => (
-                                <MenuItem key={field} value={field}>
-                                    <Checkbox checked={fields.includes(field)} />
-                                    <ListItemText primary={field.replace('_', ' ').toUpperCase()} />
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-                    <TextField
-                        fullWidth
-                        margin="normal"
-                        label="Buscar por Nombre de Usuario"
-                        variant="outlined"
-                        value={usernameFilter}
-                        onChange={handleUsernameFilterChange}
-                    />
-                    <FormControl fullWidth margin="normal">
-                        <InputLabel>Filtrar por Rol</InputLabel>
-                        <Select
-                            value={roleFilter}
-                            onChange={handleRoleFilterChange}
-                        >
-                            <MenuItem value=""><em>Todos</em></MenuItem>
-                            <MenuItem value="admin">Administrador</MenuItem>
-                            <MenuItem value="user">Usuario</MenuItem>
-                        </Select>
-                    </FormControl>
-                    <Box display="flex" justifyContent="space-between">
-                        <TextField
-                            label="Fecha de Inicio"
-                            type="date"
-                            InputLabelProps={{
-                                shrink: true,
-                            }}
-                            value={dateRange.start}
-                            onChange={handleDateRangeChange('start')}
-                            fullWidth
-                            margin="normal"
-                        />
-                        <Box mx={2}></Box>
-                        <TextField
-                            label="Fecha de Fin"
-                            type="date"
-                            InputLabelProps={{
-                                shrink: true,
-                            }}
-                            value={dateRange.end}
-                            onChange={handleDateRangeChange('end')}
-                            fullWidth
-                            margin="normal"
-                        />
-                    </Box>
-                </Box>
-                <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handleDownload}
-                    style={{ marginBottom: '20px' }}
-                >
-                    Generar PDF
-                </Button>
-                <TableContainer component={Paper}>
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                {fields.includes('user_id') && <TableCell>ID</TableCell>}
-                                {fields.includes('username') && <TableCell>Nombre de usuario</TableCell>}
-                                {fields.includes('email') && <TableCell>Email</TableCell>}
-                                {fields.includes('created_at') && <TableCell>Fecha de creación</TableCell>}
-                                {fields.includes('role') && <TableCell>Rol</TableCell>}
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {getFilteredUsers().map((user) => (
-                                <TableRow key={user.user_id}>
-                                    {fields.includes('user_id') && <TableCell>{user.user_id}</TableCell>}
-                                    {fields.includes('username') && <TableCell>{user.username}</TableCell>}
-                                    {fields.includes('email') && <TableCell>{user.email}</TableCell>}
-                                    {fields.includes('created_at') && <TableCell>{user.created_at}</TableCell>}
-                                    {fields.includes('role') && <TableCell>{user.role}</TableCell>}
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-                <Box mt={5}>
-                    <Typography variant="h5" component="h2" gutterBottom>
-                        Visualización de Datos
-                    </Typography>
-                    <div className="relative h-96">
-                        <Bar data={getChartData()} options={{ responsive: true, maintainAspectRatio: false }} />
-                    </div>
-                </Box>
+                {loading ? (
+                    <CircularProgress />
+                ) : (
+                    <>
+                        <Box mb={3}>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12} sm={6} md={3}>
+                                    <TextField
+                                        fullWidth
+                                        margin="normal"
+                                        label="Buscar por Nombre"
+                                        variant="outlined"
+                                        value={filters.username}
+                                        onChange={handleFilterChange('username')}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6} md={3}>
+                                    <FormControl fullWidth margin="normal">
+                                        <InputLabel>Filtrar por Rol</InputLabel>
+                                        <Select
+                                            value={filters.role}
+                                            onChange={handleFilterChange('role')}
+                                        >
+                                            <MenuItem value=""><em>Todos</em></MenuItem>
+                                            <MenuItem value="admin">Administrador</MenuItem>
+                                            <MenuItem value="user">Usuario</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                                <Grid item xs={12} sm={6} md={3}>
+                                    <FormControl fullWidth margin="normal">
+                                        <InputLabel>Filtrar por Estado</InputLabel>
+                                        <Select
+                                            value={filters.status}
+                                            onChange={handleFilterChange('status')}
+                                        >
+                                            <MenuItem value=""><em>Todos</em></MenuItem>
+                                            <MenuItem value="active">Activo</MenuItem>
+                                            <MenuItem value="inactive">Inactivo</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                                <Grid item xs={12} sm={6} md={3}>
+                                    <TextField
+                                        label="Fecha de Inicio"
+                                        type="date"
+                                        InputLabelProps={{
+                                            shrink: true,
+                                        }}
+                                        value={filters.startDate}
+                                        onChange={handleFilterChange('startDate')}
+                                        fullWidth
+                                        margin="normal"
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6} md={3}>
+                                    <TextField
+                                        label="Fecha de Fin"
+                                        type="date"
+                                        InputLabelProps={{
+                                            shrink: true,
+                                        }}
+                                        value={filters.endDate}
+                                        onChange={handleFilterChange('endDate')}
+                                        fullWidth
+                                        margin="normal"
+                                    />
+                                </Grid>
+                            </Grid>
+
+                            <FormControl fullWidth margin="normal">
+                                <InputLabel>Seleccionar Campos</InputLabel>
+                                <Select
+                                    multiple
+                                    value={fields}
+                                    onChange={handleFieldChange}
+                                    renderValue={(selected) =>
+                                        selected.map((field) => field.replace('_', ' ').toUpperCase()).join(', ')
+                                    }
+                                >
+                                    {availableFields.map((field) => (
+                                        <MenuItem key={field} value={field}>
+                                            <Checkbox checked={fields.includes(field)} />
+                                            <ListItemText primary={field.replace('_', ' ').toUpperCase()} />
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Box>
+
+                        <Grid container spacing={2}>
+                            <Grid item>
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    onClick={() => handleDownload('pdf')}
+                                >
+                                    Descargar PDF
+                                </Button>
+                            </Grid>
+                            <Grid item>
+                                <Button
+                                    variant="contained"
+                                    color="secondary"
+                                    onClick={() => handleDownload('csv')}
+                                >
+                                    Descargar CSV
+                                </Button>
+                            </Grid>
+                            <Grid item>
+                                <Button
+                                    variant="contained"
+                                    color="success"
+                                    onClick={() => handleDownload('xlsx')}
+                                >
+                                    Descargar Excel
+                                </Button>
+                            </Grid>
+                        </Grid>
+
+                        <TableContainer component={Paper} style={{ marginTop: '20px' }}>
+                            <Table>
+                                <TableHead>
+                                    <TableRow>
+                                        {fields.includes('user_id') && <TableCell>ID</TableCell>}
+                                        {fields.includes('username') && <TableCell>Nombre de usuario</TableCell>}
+                                        {fields.includes('email') && <TableCell>Email</TableCell>}
+                                        {fields.includes('created_at') && <TableCell>Fecha de creación</TableCell>}
+                                        {fields.includes('role') && <TableCell>Rol</TableCell>}
+                                        {fields.includes('status') && <TableCell>Estado</TableCell>}
+                                        {fields.includes('last_login') && <TableCell>Último Login</TableCell>}
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {getFilteredUsers().map((user) => (
+                                        <TableRow key={user.user_id}>
+                                            {fields.includes('user_id') && <TableCell>{user.user_id}</TableCell>}
+                                            {fields.includes('username') && <TableCell>{user.username}</TableCell>}
+                                            {fields.includes('email') && <TableCell>{user.email}</TableCell>}
+                                            {fields.includes('created_at') && <TableCell>{user.created_at}</TableCell>}
+                                            {fields.includes('role') && <TableCell>{user.role}</TableCell>}
+                                            {fields.includes('status') && <TableCell>{user.status}</TableCell>}
+                                            {fields.includes('last_login') && <TableCell>{user.last_login}</TableCell>}
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+
+                        <Box mt={5}>
+                            <Typography variant="h5" component="h2" gutterBottom>
+                                Visualización de Datos
+                            </Typography>
+                            <div className="relative h-96">
+                                <Bar data={getChartData()} options={{ responsive: true, maintainAspectRatio: false }} />
+                            </div>
+                        </Box>
+                    </>
+                )}
             </Box>
         </Container>
     );

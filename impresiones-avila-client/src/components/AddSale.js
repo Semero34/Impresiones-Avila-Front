@@ -12,7 +12,7 @@ function AddSale() {
         e.preventDefault();
         try {
             const token = localStorage.getItem('token');
-            await axios.post('http://localhost:3001/sales', { sale_date: saleDate, total_amount: totalAmount, items }, {
+            await axios.post('${process.env.REACT_APP_API_URL}/sales', { sale_date: saleDate, total_amount: totalAmount, items }, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             setMessage('Sale added successfully');

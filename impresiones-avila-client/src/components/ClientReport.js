@@ -35,7 +35,7 @@ function ClientReport() {
         const fetchClients = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get('http://localhost:3001/clients', {
+                const response = await axios.get('${process.env.REACT_APP_API_URL}/clients', {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -64,7 +64,7 @@ function ClientReport() {
                 start_date: dateRange.start,
                 end_date: dateRange.end
             }).toString();
-            const response = await axios.get(`http://localhost:3001/generate-client-report?${queryString}`, {
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/generate-client-report?${queryString}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 },

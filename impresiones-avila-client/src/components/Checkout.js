@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Container, Typography, Paper, Grid, Card, CardContent, CardActionArea, Button, Divider } from '@mui/material';
-import { Payment, AccountBalance } from '@mui/icons-material';
+import { Box, Container, Typography, Paper, Grid, Button, CircularProgress, Divider } from '@mui/material';
+import { CreditCard, Lock, LocalShipping, Replay } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { PayPalButtons } from "@paypal/react-paypal-js";
 import {jwtDecode} from 'jwt-decode';
 
 function Checkout() {
     const [cartItems, setCartItems] = useState([]);
-    const [paymentMethod, setPaymentMethod] = useState('sinpe');
     const [message, setMessage] = useState('');
-    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [clientInfo, setClientInfo] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -22,176 +21,130 @@ function Checkout() {
             const decodedToken = jwtDecode(token);
             const user_id = decodedToken.id;
 
-            const fetchClientInfo = async () => {
-                try {
-                    await axios.get(`http://localhost:3001/client-by-user/${user_id}`);
-                } catch (error) {
-                    console.error('Error fetching client info:', error);
-                    setError('No se pudo obtener la información del cliente.');
-                }
-            };
-
-            fetchClientInfo();
+            axios.get(`${process.env.REACT_APP_API_URL}/client-by-user/${user_id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).then(response => {
+                setClientInfo(response.data);
+            }).catch(error => {
+                console.error('Error fetching client info:', error);
+            });
         }
     }, []);
 
     const calculateTotal = () => {
-        return cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+        const total = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+        const discount = localStorage.getItem('discount') || 0; // Recuperar el descuento del localStorage
+        return (total - total * discount).toFixed(2); // Aplica el descuento
     };
 
-    const handlePayPalOrderCreation = async () => {
+    const getDiscountAmount = () => {
+        const total = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+        const discount = localStorage.getItem('discount') || 0;
+        return (total * discount).toFixed(2); // Muestra el monto de descuento
+    };
+    
+    const handleCheckout = async () => {
+        if (cartItems.length === 0) {
+            setMessage('Tu carrito está vacío.');
+            return;
+        }
+    
+        const discount = localStorage.getItem('discount') || 0; // Recupera el descuento del localStorage
+    
+        setLoading(true);
         try {
             const token = localStorage.getItem('token');
             const decodedToken = jwtDecode(token);
             const user_id = decodedToken.id;
-
-            const clientResponse = await axios.get(`http://localhost:3001/client-by-user/${user_id}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            const client_id = clientResponse.data.client_id;
-
-            const response = await axios.post('http://localhost:3001/create-paypal-order', {
-                client_id: client_id,
-                items: cartItems,
-                total: calculateTotal(),
-                paymentMethod: 'paypal',
-            }, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            return response.data.orderID;
-        } catch (error) {
-            console.error('Error creando la orden de PayPal:', error);
-            setMessage('Hubo un error al iniciar la transacción con PayPal. Por favor, intenta de nuevo.');
-            return null;
-        }
-    };
-
-    const handlePayPalApprove = async (data) => {
-        try {
-            const captureResponse = await axios.post('http://localhost:3001/capture-paypal-order', {
-                orderID: data.orderID
-            }, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-
-             // Clear the cart after a successful purchase
-        localStorage.removeItem('cart');
-        setCartItems([]);
-
-            navigate('/confirmation', {
-                state: {
-                    invoiceId: captureResponse.data.invoiceId,
-                    cartItems,
-                    total: calculateTotal(),
-                    paymentMethod: 'paypal',
-                }
-            });
-
-        } catch (error) {
-            console.error('Error al capturar la orden de PayPal:', error);
-            setMessage('Hubo un error al capturar la transacción con PayPal. Por favor, intenta de nuevo.');
-        }
-    };
-
-    const handleCheckout = async () => {
-        const token = localStorage.getItem('token');
-        const decodedToken = jwtDecode(token);
-        const user_id = decodedToken.id;
     
-        try {
-            const clientResponse = await axios.get(`http://localhost:3001/client-by-user/${user_id}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+            const clientResponse = await axios.get(`${process.env.REACT_APP_API_URL}/client-by-user/${user_id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
             });
     
             const client_id = clientResponse.data.client_id;
     
-            const response = await axios.post('http://localhost:3001/create-paypal-order', {
+            const orderResponse = await axios.post('${process.env.REACT_APP_API_URL}/create-checkout-session', {
                 client_id: client_id,
                 items: cartItems,
-                total: calculateTotal(),
-                paymentMethod: paymentMethod,
+                discount: discount // Enviamos el descuento al backend
             }, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
-
-            localStorage.removeItem('cart');
-            setCartItems([]);
     
-            if (response.data.success) {
-                navigate('/confirmation', {
-                    state: {
-                        invoiceId: response.data.invoiceId,
-                        cartItems,
-                        total: calculateTotal(),
-                        paymentMethod: paymentMethod,
-                    }
-                });
-            } else {
-                setMessage('Hubo un error al procesar tu orden. Por favor, intenta de nuevo.');
-            }
+            localStorage.removeItem('discount');
+    
+            window.location.href = orderResponse.data.url; // Redirige a Stripe Checkout
         } catch (error) {
             console.error('Error al procesar la orden:', error);
             setMessage('Hubo un error al procesar tu orden. Por favor, intenta de nuevo.');
+        } finally {
+            setLoading(false);
         }
     };
     
 
-    const total = calculateTotal();
+    useEffect(() => {
+        const query = new URLSearchParams(window.location.search);
+        if (query.get("success")) {
+            setMessage("¡Orden realizada con éxito! Pronto recibirás un correo de confirmación.");
+        }
+        if (query.get("canceled")) {
+            setMessage("Orden cancelada -- continúa comprando y realiza el checkout cuando estés listo.");
+        }
+    }, []);
 
     return (
         <Box 
             style={{ 
-                backgroundColor: '#f3e5f5', 
+                background: 'linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%)',
                 paddingBottom: '2rem', 
                 minHeight: '100vh', 
-                width: '100%',
-                margin: 0,
-                padding: 0,
+                width: '100%', 
+                margin: 0, 
+                padding: 0 
             }}
         >
-            <Box 
-                className="text-center py-12 mb-8" 
-                style={{ 
-                    backgroundColor: '#d7bde2', 
-                    color: '#4a235a', 
-                    padding: '2rem 0', 
-                    borderRadius: '0px', 
-                    width: '100%',
-                    boxShadow: 'none', 
-                    margin: 0,
-                }}
-            >
-                <Typography variant="h3" className="font-bold" style={{ margin: '0 auto', maxWidth: '1200px' }}>
-                    ¡Estás a punto de completar tu compra!
-                </Typography>
-                <Typography variant="subtitle1" style={{ marginTop: '1rem', color: '#6c3483' }}>
-                    Revisa los detalles de tu pedido y selecciona un método de pago para finalizar.
-                </Typography>
-            </Box>
-    
-            <Container maxWidth="lg" style={{ padding: '0', backgroundColor: '#f3e5f5' }}>
+            <Container maxWidth="lg" style={{ padding: '0', backgroundColor: 'transparent' }}>
                 <Grid container spacing={4} style={{ margin: '0 auto', maxWidth: '1200px' }}>
                     <Grid item xs={12} md={8}>
-                        <Paper elevation={8} className="p-8 rounded-lg shadow-lg" style={{ backgroundColor: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '20px' }}>
+                        <Paper 
+                            elevation={12} 
+                            className="p-8 rounded-lg shadow-xl" 
+                            style={{ 
+                                backgroundColor: '#ffffff', 
+                                border: '1px solid #d1c4e9', 
+                                borderRadius: '20px',
+                                transition: 'transform 0.3s, box-shadow 0.3s',
+                                '&:hover': {
+                                    transform: 'translateY(-5px)',
+                                    boxShadow: '0 12px 24px rgba(0, 0, 0, 0.15)',
+                                }
+                            }}
+                        >
                             <Typography variant="h4" gutterBottom className="font-bold text-gray-900">
                                 Resumen del Pedido
                             </Typography>
                             {cartItems.map((item, index) => (
-                                <Box key={index} display="flex" justifyContent="space-between" mb={2} className="p-4 border-b" style={{ borderColor: '#d7bde2', borderBottomWidth: '2px' }}>
+                                <Box 
+                                    key={index} 
+                                    display="flex" 
+                                    justifyContent="space-between" 
+                                    mb={2} 
+                                    className="p-4 border-b" 
+                                    style={{ borderColor: '#d7bde2', borderBottomWidth: '2px' }}
+                                >
                                     <Box display="flex">
-                                        <img src={item.image} alt={item.name} className="w-24 h-24 rounded-lg object-cover mr-4 shadow-md" />
+                                        <img 
+                                            src={item.image} 
+                                            alt={item.name} 
+                                            className="w-24 h-24 rounded-lg object-cover mr-4 shadow-md" 
+                                            style={{ 
+                                                transition: 'transform 0.3s',
+                                                '&:hover': {
+                                                    transform: 'scale(1.1)',
+                                                }
+                                            }}
+                                        />
                                         <Box>
                                             <Typography variant="body1" className="font-bold text-gray-900">{item.name}</Typography>
                                             <Typography variant="body2" className="text-gray-600">{item.description}</Typography>
@@ -199,109 +152,88 @@ function Checkout() {
                                             <Typography variant="body2" className="font-bold text-blue-500">Precio: ${item.price}</Typography>
                                         </Box>
                                     </Box>
-                                    <Typography variant="body1" className="font-bold text-gray-900">${(item.price * item.quantity).toFixed(2)}</Typography>
+                                    <Typography variant="h5" align="right" mt={2} className="font-bold text-gray-900">
+                                        Subtotal: ${(item.price * item.quantity).toFixed(2)}
+                                    </Typography>
                                 </Box>
                             ))}
                             <Typography variant="h5" align="right" mt={2} className="font-bold text-gray-900">
-                                Total: ${total.toFixed(2)}
+                                Descuento: -${getDiscountAmount()}
+                            </Typography>
+                            <Typography variant="h5" align="right" mt={2} className="font-bold text-gray-900">
+                                Total: ${calculateTotal()}
                             </Typography>
                         </Paper>
                     </Grid>
     
                     <Grid item xs={12} md={4}>
-                        <Paper elevation={8} className="p-8 rounded-lg shadow-lg" style={{ backgroundColor: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '20px' }}>
-                            <Typography variant="h6" gutterBottom className="font-bold text-gray-900">
-                                Método de Pago
+                        <Paper 
+                            elevation={12} 
+                            className="p-8 rounded-lg shadow-xl" 
+                            style={{ 
+                                backgroundColor: '#ffffff', 
+                                border: '1px solid #d1c4e9', 
+                                borderRadius: '20px',
+                                transition: 'transform 0.3s, box-shadow 0.3s',
+                                '&:hover': {
+                                    transform: 'translateY(-5px)',
+                                    boxShadow: '0 12px 24px rgba(0, 0, 0, 0.15)',
+                                }
+                            }}
+                        >
+                            <Typography variant="h6" gutterBottom className="font-bold text-gray-900" style={{ textAlign: 'center' }}>
+                                ¡Tu pedido está casi listo!
                             </Typography>
-                            <Grid container spacing={2}>
-                                <Grid item xs={6}>
-                                    <CardActionArea onClick={() => setPaymentMethod('sinpe')}>
-                                        <Card
-                                            style={{
-                                                backgroundColor: paymentMethod === 'sinpe' ? '#d7bde2' : '#f3e5f5',
-                                                color: paymentMethod === 'sinpe' ? 'white' : 'black',
-                                                borderRadius: '12px',
-                                                transition: '0.3s',
-                                                boxShadow: paymentMethod === 'sinpe' ? '0 4px 15px rgba(0, 0, 0, 0.2)' : 'none'
-                                            }}
-                                        >
-                                            <CardContent style={{ textAlign: 'center' }}>
-                                                <Payment fontSize="large" />
-                                                <Typography variant="h6">Sinpe Móvil</Typography>
-                                            </CardContent>
-                                        </Card>
-                                    </CardActionArea>
-                                </Grid>
-                                <Grid item xs={6}>
-                                    <CardActionArea onClick={() => setPaymentMethod('bank')}>
-                                        <Card
-                                            style={{
-                                                backgroundColor: paymentMethod === 'bank' ? '#d7bde2' : '#f3e5f5',
-                                                color: paymentMethod === 'bank' ? 'white' : 'black',
-                                                borderRadius: '12px',
-                                                transition: '0.3s',
-                                                boxShadow: paymentMethod === 'bank' ? '0 4px 15px rgba(0, 0, 0, 0.2)' : 'none'
-                                            }}
-                                        >
-                                            <CardContent style={{ textAlign: 'center' }}>
-                                                <AccountBalance fontSize="large" />
-                                                <Typography variant="h6">Transferencia Bancaria</Typography>
-                                            </CardContent>
-                                        </Card>
-                                    </CardActionArea>
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <CardActionArea onClick={() => setPaymentMethod('paypal')}>
-                                        <Card
-                                            style={{
-                                                backgroundColor: paymentMethod === 'paypal' ? '#d7bde2' : '#f3e5f5',
-                                                color: paymentMethod === 'paypal' ? 'white' : 'black',
-                                                borderRadius: '12px',
-                                                transition: '0.3s',
-                                                boxShadow: paymentMethod === 'paypal' ? '0 4px 15px rgba(0, 0, 0, 0.2)' : 'none'
-                                            }}
-                                        >
-                                            <CardContent style={{ textAlign: 'center' }}>
-                                                <Payment fontSize="large" />
-                                                <Typography variant="h6">PayPal</Typography>
-                                            </CardContent>
-                                        </Card>
-                                    </CardActionArea>
-                                </Grid>
-                            </Grid>
-    
-                            <Divider className="my-4" style={{ borderColor: '#d7bde2' }} />
-    
-                            <Box mt={4} textAlign="center">
-                                {paymentMethod === 'paypal' ? (
-                                    <PayPalButtons 
-                                        createOrder={handlePayPalOrderCreation}
-                                        onApprove={handlePayPalApprove}
-                                    />                               
-                                ) : (
-                                    <Button
-                                        variant="contained"
-                                        size="large"
-                                        onClick={handleCheckout}
-                                        className="py-3 px-6 rounded-full shadow-xl transition-all duration-300 transform hover:scale-105"
-                                        style={{
-                                            backgroundColor: '#ab47bc',
-                                            color: 'white',
-                                            boxShadow: '0 8px 20px rgba(0, 0, 0, 0.1)',
-                                            borderRadius: '30px'
-                                        }}
-                                    >
-                                        Finalizar Compra
-                                    </Button>
-                                )}
+                            <Box display="flex" alignItems="center" justifyContent="center" my={2}>
+                                <CreditCard style={{ color: '#6A1B9A', fontSize: '40px' }} />
+                                <Typography variant="body1" className="ml-2 font-bold text-gray-700">
+                                    Pagas con Stripe
+                                </Typography>
                             </Box>
+                            {clientInfo && (
+                                <Box my={2}>
+                                    <Typography variant="body2" className="text-gray-600">Nombre: {clientInfo.name}</Typography>
+                                    <Typography variant="body2" className="text-gray-600">Email: {clientInfo.email}</Typography>
+                                </Box>
+                            )}
+                            <Divider light style={{ margin: '20px 0' }} />
+                            <Box display="flex" justifyContent="space-between" alignItems="center">
+                                <Box display="flex" alignItems="center">
+                                    <LocalShipping style={{ color: '#43a047', fontSize: '24px', marginRight: '8px' }} />
+                                    <Typography variant="body2" className="text-gray-600">Envío Gratis</Typography>
+                                </Box>
+                                <Box display="flex" alignItems="center">
+                                    <Replay style={{ color: '#f57c00', fontSize: '24px', marginRight: '8px' }} />
+                                    <Typography variant="body2" className="text-gray-600">Devoluciones Fáciles</Typography>
+                                </Box>
+                                <Box display="flex" alignItems="center">
+                                    <Lock style={{ color: '#d32f2f', fontSize: '24px', marginRight: '8px' }} />
+                                    <Typography variant="body2" className="text-gray-600">Pago Seguro</Typography>
+                                </Box>
+                            </Box>
+                            <Button
+                                onClick={handleCheckout}
+                                variant="contained"
+                                size="large"
+                                disabled={loading}
+                                className="py-3 px-6 rounded-full shadow-xl transition-all duration-300 transform hover:scale-105"
+                                style={{
+                                    marginTop: '20px',
+                                    backgroundColor: '#6A1B9A',
+                                    color: 'white',
+                                    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.2)',
+                                    borderRadius: '30px'
+                                }}
+                            >
+                                {loading ? <CircularProgress size={24} style={{ color: 'white' }} /> : 'Finalizar Compra'}
+                            </Button>
                         </Paper>
                     </Grid>
                 </Grid>
-                {error && <Typography color="error" className="text-center mt-4">{error}</Typography>}
+                {message && <Typography color="error" className="text-center mt-4">{message}</Typography>}
             </Container>
         </Box>
     );
-}   
+}
 
 export default Checkout;
